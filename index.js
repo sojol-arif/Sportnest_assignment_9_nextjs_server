@@ -1,13 +1,12 @@
 const express = require('express');
 const dotenv = require('dotenv');
 const cors = require('cors');
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 dotenv.config();
 
 const uri = process.env.MONGODB_URI;
 
 const app = express();
-const PORT = 5000;
 
 app.use(cors());
 app.use(express.json());
@@ -42,6 +41,18 @@ async function run() {
       res.send(result);
     });
 
+    app.get('/facility/:id', async (req, res) => {
+      const { id } = req.params;
+      const result = await facilityCollection.findOne({ _id: new ObjectId(id) });
+      res.json(result);
+    });
+
+    app.post('/booking', async (req, res) => {
+      const booking = req.body;
+      const result = await bookingCollection.insertOne(booking);
+      res.send(result);
+    });
+
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
@@ -56,6 +67,6 @@ app.get('/', (req, res) => {
   res.send('Server is running!');
 });
 
-app.listen(PORT, () => {
-  console.log(`Server is running on http://localhost:${PORT}`);
+app.listen(process.env.PORT, () => {
+  console.log(`Server is running on http://localhost:${process.env.PORT}`);
 });
