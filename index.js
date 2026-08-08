@@ -47,9 +47,61 @@ async function run() {
       res.json(result);
     });
 
+    app.get('/facilities/:email', async (req, res) => {
+      const { email } = req.params;
+      const result = await facilityCollection.find({ email: email }).toArray();
+
+      res.send(result);
+    });
+
+    app.delete('/facilities/:facilityId', async (req, res) => {
+      const { facilityId } = req.params;
+      const result = await facilityCollection.deleteOne({ _id: new ObjectId(facilityId) });
+
+      res.send(result);
+    });
+
+    // app.put('/facilities/:facilityId', async (req, res) => {
+    //   const { facilityId } = req.params;
+    //   const updatedFacility = req.body;
+    //   const result = await facilityCollection.updateOne({ _id: new ObjectId(facilityId) }, { $set: updatedFacility });
+
+    //   res.send(result);
+    // });
+
+    app.patch('/facilities/:facilityId', async (req, res) => {
+      try {
+        const { facilityId } = req.params;
+        const updatedFacility = req.body;
+
+        const result = await facilityCollection.updateOne(
+          { _id: new ObjectId(facilityId) },
+          { $set: updatedFacility }
+        );
+
+        res.json(result);
+      } catch (err) {
+        console.error(err);
+        res.status(400).send({ message: 'Invalid facility ID or update failed' });
+      }
+    });
+
     app.post('/booking', async (req, res) => {
       const booking = req.body;
       const result = await bookingCollection.insertOne(booking);
+      res.send(result);
+    });
+
+    app.get('/booking/:userId', async (req, res) => {
+      const { userId } = req.params;
+      const result = await bookingCollection.find({ userId: userId }).toArray();
+
+      res.send(result);
+    });
+
+    app.delete('/booking/:bookingId', async (req, res) => {
+      const { bookingId } = req.params;
+      const result = await bookingCollection.deleteOne({ _id: new ObjectId(bookingId) });
       res.send(result);
     });
 
