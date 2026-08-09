@@ -2,10 +2,11 @@ const express = require('express');
 const dotenv = require('dotenv');
 const cors = require('cors');
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
+const { createRemoteJWKSet, jwtVerify } = require('jose-cjs');
 dotenv.config();
 
 const uri = process.env.MONGODB_URI;
-
+const port = process.env.PORT;
 const app = express();
 
 app.use(cors());
@@ -20,11 +21,39 @@ const client = new MongoClient(uri, {
   }
 });
 
+const JWKS = createRemoteJWKSet(
+  new URL(`${process.env.CLIENT_URL}/api/auth/jwks`)
+)
+
+const verifyToken = async (req, res, next) => {
+  const authHeader = await req?.headers.authorization;
+  //console.log(authHeader, 'authHeader from backend');
+
+  if (!authHeader) {
+    return res.status(401).json({ message: "Unauthorized: No authorization header provided" });
+  }
+
+  const token = await authHeader.split(" ")[1];
+  console.log(token, 'token from backend');
+  if (!token) {
+    return res.status(401).json({ message: "Unauthorized: Invalid token" });
+  }
+
+  try {
+    const { payload } = await jwtVerify(token, JWKS)
+    console.log(payload, 'payload from backend');
+    next()
+  } catch (error) {
+    console.log(error, 'error from backend');
+    return res.status(403).json({ message: "Forbidden: Invalid token" });
+  }
+
+}
 
 async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
-    await client.connect();
+    //await client.connect();
     const db = client.db('sportnest');
 
     const facilityCollection = db.collection('facilities');
@@ -35,19 +64,24 @@ async function run() {
       res.send(result);
     });
 
-    app.post('/facility', async (req, res) => {
-      const facility = req.body;
-      const result = await facilityCollection.insertOne(facility);
-      res.send(result);
+    app.post('/facility', verifyToken, async (req, res) => {
+      try {
+        const facility = req.body;
+        const result = await facilityCollection.insertOne(facility);
+        res.send(result);
+      } catch (err) {
+        console.error(err);
+        res.status(400).send({ message: 'Failed to add facility' });
+      }
     });
 
-    app.get('/facility/:id', async (req, res) => {
+    app.get('/facility/:id', verifyToken, async (req, res) => {
       const { id } = req.params;
       const result = await facilityCollection.findOne({ _id: new ObjectId(id) });
       res.json(result);
     });
 
-    app.get('/facilities/:email', async (req, res) => {
+    app.get('/facilities/:email', verifyToken, async (req, res) => {
       const { email } = req.params;
       const result = await facilityCollection.find({ email: email }).toArray();
 
@@ -86,13 +120,13 @@ async function run() {
       }
     });
 
-    app.post('/booking', async (req, res) => {
+    app.post('/booking', verifyToken, async (req, res) => {
       const booking = req.body;
       const result = await bookingCollection.insertOne(booking);
       res.send(result);
     });
 
-    app.get('/booking/:userId', async (req, res) => {
+    app.get('/booking/:userId', verifyToken, async (req, res) => {
       const { userId } = req.params;
       const result = await bookingCollection.find({ userId: userId }).toArray();
 
@@ -106,8 +140,8 @@ async function run() {
     });
 
     // Send a ping to confirm a successful connection
-    await client.db("admin").command({ ping: 1 });
-    console.log("Pinged your deployment. You successfully connected to MongoDB!");
+    //await client.db("admin").command({ ping: 1 });
+    //console.log("Pinged your deployment. You successfully connected to MongoDB!");
   } finally {
     // Ensures that the client will close when you finish/error
     // await client.close();
@@ -119,6 +153,6 @@ app.get('/', (req, res) => {
   res.send('Server is running!');
 });
 
-app.listen(process.env.PORT, () => {
-  console.log(`Server is running on http://localhost:${process.env.PORT}`);
+app.listen(port, () => {
+  console.log(`Server is running on http://localhost:${port}`);
 });
