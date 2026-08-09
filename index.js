@@ -64,6 +64,11 @@ async function run() {
       res.send(result);
     });
 
+    app.get('/featured', async (req, res) => {
+      const result = await facilityCollection.find().limit(6).toArray();
+      res.send(result);
+    });
+
     app.post('/facility', verifyToken, async (req, res) => {
       try {
         const facility = req.body;
