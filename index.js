@@ -34,17 +34,17 @@ const verifyToken = async (req, res, next) => {
   }
 
   const token = await authHeader.split(" ")[1];
-  console.log(token, 'token from backend');
+  //console.log(token, 'token from backend');
   if (!token) {
     return res.status(401).json({ message: "Unauthorized: Invalid token" });
   }
 
   try {
     const { payload } = await jwtVerify(token, JWKS)
-    console.log(payload, 'payload from backend');
+    //console.log(payload, 'payload from backend');
     next()
   } catch (error) {
-    console.log(error, 'error from backend');
+    //console.log(error, 'error from backend');
     return res.status(403).json({ message: "Forbidden: Invalid token" });
   }
 
@@ -159,5 +159,5 @@ app.get('/', (req, res) => {
 });
 
 app.listen(port, () => {
-  console.log(`Server is running on http://localhost:${port}`);
+  //console.log(`Server is running on http://localhost:${port}`);
 });
